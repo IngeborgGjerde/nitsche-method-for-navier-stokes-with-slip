@@ -101,7 +101,6 @@ def run_convergence_test(N_i, params):
     var_list = [u_a_i, p_a_i, u, p]
     for ix, file in enumerate(file_list):
         file << var_list[ix]
-    from IPython import embed;embed()
     root = Path(code_path)
     xdmf_file_list = [XDMFFile(str(((root / "Results" / "Plots" / var_name).with_suffix(".xdmf")))) for var_name in var_names]
     for file, name, var in zip(xdmf_file_list, var_names, var_list):
