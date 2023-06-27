@@ -38,7 +38,6 @@ def run_convergence_test(N_i, params):
     for i in range(1, N_i):
         new_mesh = adapt(meshes[-1])
         new_mf = adapt(facet_functions[-1], new_mesh)
-        mesh_size_surface
         meshes.append(new_mesh)
         facet_functions.append(new_mf)
         hs.append(meshes[-1].hmax())
