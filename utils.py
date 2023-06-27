@@ -1,7 +1,6 @@
 from fenics import *
 import numpy as np
-import solve as solvers
-
+from pathlib import Path
 def write_convergence_table(error, file_name, variable_name, parameters, gammas, meshes, hs, hgammas):
 
     desc = '_beta'+str(parameters['beta'])
@@ -28,7 +27,8 @@ def write_convergence_table(error, file_name, variable_name, parameters, gammas,
         desc += '_discnormal'
         caption += ', discrete normal'
 
-
+    file_path = Path(file_name+desc)
+    file_path.parent.mkdir(parents=True, exist_ok=True)    
     ffile = open(file_name+desc, "w+")
 
     # Make preamble for table

@@ -4,8 +4,8 @@ from fenics import *
 import solve as solvers
 import testproblems as testproblems
 import utils as utils
-from mesh_functions import get_meshes
-
+from mesh_functions import get_meshes, mesh_size_surface
+parameters["refinement_algorithm"] = "plaza_with_parent_facets" 
 '''
 Script for running the convergence tests in the paper
 '''
@@ -23,7 +23,26 @@ def run_convergence_test(N_i, params):
     Ns = [2 ** (i+2) for i in range(0, N_i)]
 
     radius, center = 1.0, [0.0, 0.0]
-    meshes, facet_functions, hs, hgammas = get_meshes(Ns, use_refined_mesh=params['cyl_refinement'])
+    #meshes, facet_functions, hs, hgammas = get_meshes(Ns, use_refined_mesh=params['cyl_refinement'])
+    meshes = [Mesh()]
+    with XDMFFile("mesh.xdmf") as xdmf:
+        xdmf.read(meshes[0])
+        mvc = MeshValueCollection("size_t", meshes[0], 1) 
+    with XDMFFile("facet_mesh.xdmf") as infile:
+        infile.read(mvc, "name_to_read")
+    mf = cpp.mesh.MeshFunctionSizet(meshes[0], mvc)
+    facet_functions = [mf]
+    hs = [meshes[0].hmax()]
+    hgammas = [mesh_size_surface(facet_functions[0], 1)]
+
+    for i in range(1, N_i):
+        new_mesh = adapt(meshes[-1])
+        new_mf = adapt(facet_functions[-1], new_mesh)
+        mesh_size_surface
+        meshes.append(new_mesh)
+        facet_functions.append(new_mf)
+        hs.append(meshes[-1].hmax())
+        hgammas.append(mesh_size_surface(facet_functions[-1], 1))
 
     ## Get testproblem
     if beta == -2.0:
@@ -78,10 +97,18 @@ def run_convergence_test(N_i, params):
         utils.write_convergence_table(error, ffile_names[ix], variable_names[ix], params, gammas, meshes, hs, hgammas)
 
     # Plot solutions to paraview
-    file_list = [File(code_path + '/Results/Plots/' + var_name + '.pvd') for var_name in ['u_a', 'p_a', 'u_h', 'p_h']]
+    var_names = ['u_a', 'p_a', 'u_h', 'p_h']
+    file_list = [File(code_path + '/Results/Plots/' + var_name + '.pvd') for var_name in var_names]
     var_list = [u_a_i, p_a_i, u, p]
     for ix, file in enumerate(file_list):
         file << var_list[ix]
+    from IPython import embed;embed()
+    root = Path(code_path)
+    xdmf_file_list = [XDMFFile(str(((root / "Results" / "Plots" / var_name).with_suffix(".xdmf")))) for var_name in var_names]
+    for file, name, var in zip(xdmf_file_list, var_names, var_list):
+        file.write_checkpoint(var, name, 0.0, append=False)
+    for file in xdmf_file_list:
+        file.close()
 
     # Plot solutions using matplotlib
     import matplotlib.pyplot as plt
@@ -90,7 +117,6 @@ def run_convergence_test(N_i, params):
         c = plot(func, mode='color')
         plt.colorbar(c)
         fig.savefig(code_path + '/Results/Plots/' + name + '.png')
-
 
 import argparse
 
